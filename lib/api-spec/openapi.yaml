@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Merchant dashboard operations
+  - name: disputes
+    description: Chargeback dispute operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,155 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get the merchant dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /dashboard/activity:
+    get:
+      operationId: getDashboardActivity
+      tags: [dashboard]
+      summary: Get recent chargeback activity
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+  /disputes:
+    get:
+      operationId: listDisputes
+      tags: [disputes]
+      summary: List disputes
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, needs_action, submitted, won, lost]
+            default: all
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Disputes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dispute"
+  /disputes/{id}:
+    get:
+      operationId: getDispute
+      tags: [disputes]
+      summary: Get a dispute with evidence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dispute detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeDetail"
+        "404":
+          description: Dispute not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /disputes/{id}/generate-evidence:
+    post:
+      operationId: generateDisputeEvidence
+      tags: [disputes]
+      summary: Generate a dispute evidence package
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generated evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeDetail"
+  /disputes/{id}/submit:
+    post:
+      operationId: submitDispute
+      tags: [disputes]
+      summary: Submit evidence to the payment processor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Submitted dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeDetail"
+  /webhooks/stripe:
+    post:
+      operationId: receiveStripeWebhook
+      tags: [disputes]
+      summary: Receive a Stripe dispute webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookDisputeEvent"
+      responses:
+        "202":
+          description: Webhook accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookAccepted"
+  /webhooks/shopify:
+    post:
+      operationId: receiveShopifyWebhook
+      tags: [disputes]
+      summary: Receive a Shopify Payments dispute webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookDisputeEvent"
+      responses:
+        "202":
+          description: Webhook accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookAccepted"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +186,217 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    DashboardSummary:
+      type: object
+      properties:
+        winRate:
+          type: number
+        recoveredAmount:
+          type: number
+        openDisputes:
+          type: integer
+        submittedThisMonth:
+          type: integer
+        winRateChange:
+          type: number
+        recoveredChange:
+          type: number
+        monthlyRecovery:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecoveryPoint"
+      required:
+        - winRate
+        - recoveredAmount
+        - openDisputes
+        - submittedThisMonth
+        - winRateChange
+        - recoveredChange
+        - monthlyRecovery
+    RecoveryPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        recovered:
+          type: number
+        disputes:
+          type: integer
+      required: [month, recovered, disputes]
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+        tone:
+          type: string
+          enum: [positive, neutral, warning]
+      required: [id, title, description, timestamp, tone]
+    Dispute:
+      type: object
+      properties:
+        id:
+          type: string
+        orderNumber:
+          type: string
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        reason:
+          type: string
+          enum: [product_not_received, unrecognized, fraud]
+        reasonLabel:
+          type: string
+        status:
+          type: string
+          enum: [needs_action, submitted, won, lost]
+        statusLabel:
+          type: string
+        deadline:
+          type: string
+        orderDate:
+          type: string
+        createdAt:
+          type: string
+        evidenceCount:
+          type: integer
+        evidenceReady:
+          type: boolean
+      required:
+        - id
+        - orderNumber
+        - customerName
+        - customerEmail
+        - amount
+        - currency
+        - reason
+        - reasonLabel
+        - status
+        - statusLabel
+        - deadline
+        - orderDate
+        - createdAt
+        - evidenceCount
+        - evidenceReady
+    EvidenceItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [order, tracking, ip, email, delivery_photo, order_history]
+        label:
+          type: string
+        detail:
+          type: string
+        status:
+          type: string
+          enum: [verified, found, missing]
+        source:
+          type: string
+      required: [id, type, label, detail, status, source]
+    DisputeDetail:
+      allOf:
+        - $ref: "#/components/schemas/Dispute"
+        - type: object
+          properties:
+            shippingAddress:
+              type: string
+            billingAddress:
+              type: string
+            paymentMethod:
+              type: string
+            trackingNumber:
+              type: string
+            carrier:
+              type: string
+            deliveryDate:
+              type: string
+            evidence:
+              type: array
+              items:
+                $ref: "#/components/schemas/EvidenceItem"
+            evidenceSummary:
+              type: string
+            pdfReady:
+              type: boolean
+            submittedAt:
+              type: ["string", "null"]
+          required:
+            - shippingAddress
+            - billingAddress
+            - paymentMethod
+            - trackingNumber
+            - carrier
+            - deliveryDate
+            - evidence
+            - evidenceSummary
+            - pdfReady
+            - submittedAt
+    WebhookDisputeEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+        orderNumber:
+          type: string
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+          default: USD
+        reason:
+          type: string
+          enum: [product_not_received, unrecognized, fraud]
+        shippingAddress:
+          type: string
+        billingAddress:
+          type: string
+        paymentMethod:
+          type: string
+        trackingNumber:
+          type: string
+        carrier:
+          type: string
+        deliveryDate:
+          type: string
+      required:
+        - eventId
+        - orderNumber
+        - customerName
+        - customerEmail
+        - amount
+        - reason
+    WebhookAccepted:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+        disputeId:
+          type: string
+        message:
+          type: string
+      required: [accepted, disputeId, message]
 

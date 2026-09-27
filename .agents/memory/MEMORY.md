@@ -1,0 +1,1 @@
+- [Generated API client bodies](api-client-generated-bodies.md) — request-body codegen requires `dom.iterable` in the client compiler libs.

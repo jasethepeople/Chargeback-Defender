@@ -1,6 +1,6 @@
-# [Project name]
+# Chargeback Defender
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Chargeback Defender helps Shopify merchants assemble chargeback evidence, track deadlines, and submit stronger dispute packages.
 
 ## Run & Operate
 
@@ -22,23 +22,36 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/chargeback-defender/src/` — React/Vite dashboard, disputes queue, evidence workspace, activity, and settings
+- `artifacts/api-server/src/routes/disputes.ts` — dashboard, disputes, evidence, submission, and webhook handlers
+- `lib/api-spec/openapi.yaml` — source of truth for API contracts and generated hooks
+- `lib/db/src/schema/disputes.ts` — persisted dispute record and evidence JSON schema
+- `artifacts/chargeback-defender/src/index.css` — product theme tokens and global styles
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The API is contract-first: OpenAPI generates both React Query hooks and server-side Zod validators.
+- Dispute evidence is stored as queryable JSON on the dispute record so each evidence source can render independently.
+- The first build uses seeded PostgreSQL data so the operator experience works before provider OAuth is authorized.
+- Stripe and Shopify webhook routes accept normalized dispute events; provider-specific lookup adapters can fill in order and delivery evidence next.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Overview dashboard with recovery metrics, trend bars, priority queue, and recent activity
+- Dispute queue with search, status filters, CSV export, deadlines, and detail navigation
+- Evidence workspace for order, tracking, IP, email, delivery photo, and prior-order proof
+- Evidence PDF download, refresh/generate flow, and submission status mutation
+- Settings surface for store connections, sync preferences, plan information, and pricing
+- Stripe and Shopify Payments webhook endpoints for normalized incoming disputes
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+None recorded.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After changing `lib/api-spec/openapi.yaml`, run `pnpm --filter @workspace/api-spec run codegen`.
+- The frontend expects the shared API server under `/api`; do not hardcode a localhost API origin.
 
 ## Pointers
 

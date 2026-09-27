@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Chargeback Defender"
+description = "A merchant-facing chargeback operations platform that assembles evidence, tracks dispute outcomes, and helps Shopify brands recover revenue faster."
+version = "1.0.0"
+id = "artifacts/chargeback-defender"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19642
+
+[services.development]
+run = "pnpm --filter @workspace/chargeback-defender run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/chargeback-defender", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/chargeback-defender/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19642"
+BASE_PATH = "/"

@@ -1,0 +1,12 @@
+import { Activity as ActivityIcon, ArrowUpRight, CheckCircle2, CircleAlert, Clock3 } from 'lucide-react';
+import { useGetDashboardActivity } from '@workspace/api-client-react';
+import { AppShell, PageHeader, QueryError, SkeletonBlock } from '@/components/app-shell';
+
+export default function ActivityPage() {
+  const query = useGetDashboardActivity();
+  return <AppShell><PageHeader eyebrow="Workspace log" title="Activity" description="A clear record of every meaningful move across your recovery desk." action={<div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-[11px] font-semibold text-muted-foreground"><ActivityIcon size={14} /> Live activity</div>} />
+    <section className="max-w-3xl rounded-[14px] border border-card-border bg-card p-5 sm:p-7">
+      {query.isLoading ? <div className="space-y-5"><SkeletonBlock className="h-16" /><SkeletonBlock className="h-16" /><SkeletonBlock className="h-16" /></div> : query.isError ? <QueryError onRetry={() => query.refetch()} /> : query.data?.length ? <div className="relative">{query.data.map((item, index) => <div key={item.id} data-testid={`activity-log-${item.id}`} className="relative flex gap-4 pb-7 last:pb-0"><div className="relative z-10 grid size-9 shrink-0 place-items-center rounded-full border border-border bg-background text-muted-foreground">{item.tone === 'positive' ? <CheckCircle2 size={16} className="text-[#4c8b78]" /> : item.tone === 'warning' ? <CircleAlert size={16} className="text-primary" /> : <Clock3 size={15} />}</div>{index < (query.data?.length ?? 0) - 1 && <span className="absolute left-[17px] top-9 h-[calc(100%-18px)] w-px bg-border" />}<div className="min-w-0 pt-1"><div className="flex flex-wrap items-center gap-2"><p className="text-xs font-bold">{item.title}</p><span className="font-mono text-[9px] text-muted-foreground">{item.timestamp}</span></div><p className="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">{item.description}</p></div><ArrowUpRight size={14} className="ml-auto mt-1 shrink-0 text-muted-foreground/40" /></div>)}</div> : <div className="grid min-h-[260px] place-items-center text-center text-xs text-muted-foreground">No activity has been recorded yet.</div>}
+    </section>
+  </AppShell>;
+}
